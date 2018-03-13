@@ -1,0 +1,359 @@
+<html>
+<head>
+  <title>Baemax </title>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <script src="http://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+  <script type="text/javascript">
+    var accessToken = "794015458e22456d944550441ba333b4",
+      baseUrl = "https://api.api.ai/v1/",
+      $speechInput,
+      $recBtn,
+      recognition,
+      messageRecording = "Uhmm. I hear you!",
+      messageCouldntHear = "God, your voice is horrible. Could you say that again?",
+      messageInternalError = "Oh no, there has been an internal server error",
+      messageSorry = "I don't really know";
+
+
+    $(document).ready(function() {
+      $speechInput = $("#speech");
+      $recBtn = $("#rec");
+
+      $speechInput.keypress(function(event) {
+        if (event.which == 32) {
+          event.preventDefault();
+          send();
+        }
+      });
+      $recBtn.on("click", function(event) {
+        switchRecognition();
+      });
+      $(".debug__btn").on("click", function() {
+        $(this).next().toggleClass("is-active");
+        return false;
+      });
+    });
+
+    function startRecognition() {
+      recognition = new webkitSpeechRecognition();
+      recognition.continuous = false;
+          recognition.interimResults = false;
+
+      recognition.onstart = function(event) {
+        respond(messageRecording);
+        updateRec();
+      };
+      recognition.onresult = function(event) {
+        recognition.onend = null;
+        
+        var text = "";
+          for (var i = event.resultIndex; i < event.results.length; ++i) {
+            text += event.results[i][0].transcript;
+          }
+          setInput(text);
+        stopRecognition();
+      };
+      recognition.onend = function() {
+        respond(messageCouldntHear);
+        stopRecognition();
+      };
+      recognition.lang = "en-US";
+      recognition.start();
+    }
+  
+    function stopRecognition() {
+      if (recognition) {
+        recognition.stop();
+        recognition = null;
+      }
+      updateRec();
+    }
+
+    function switchRecognition() {
+      if (recognition) {
+        stopRecognition();
+      } else {
+        startRecognition();
+      }
+    }
+
+    function setInput(text) {
+      $speechInput.val(text);
+      send();
+    }
+
+    function updateRec() {
+      $recBtn.text(recognition ? "Stop" : "");
+    }
+
+    function send() {
+      var text = $speechInput.val();
+      $.ajax({
+        type: "POST",
+        url: baseUrl + "query",
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        headers: {
+          "Authorization": "Bearer " + accessToken
+        },
+        data: JSON.stringify({query: text, lang: "en", sessionId: "yaydevdiner"}),
+
+        success: function(data) {
+          prepareResponse(data);
+        },
+        error: function() {
+          respond(messageInternalError);
+        }
+      });
+    }
+
+    function prepareResponse(val) {
+      var debugJSON = JSON.stringify(val, undefined, 2),
+        spokenResponse = val.result.speech;
+
+      respond(spokenResponse);
+      debugRespond(debugJSON);
+    }
+
+    function debugRespond(val) {
+      $("#response").text(val);
+    }
+
+    function respond(val) {
+      if (val == "") {
+        val = messageSorry;
+      }
+
+      if (val !== messageRecording) {
+        var msg = new SpeechSynthesisUtterance();
+        msg.voiceURI = "native";
+        msg.text = val;
+        msg.lang = "en-US";
+        window.speechSynthesis.speak(msg);
+      }
+
+
+      $("#spokenResponse").addClass("is-active").find(".spoken-response__text").html(val);
+    }
+  </script>
+  <style type="text/css">
+    html {
+      box-sizing: border-box;
+    }
+    *, *:before, *:after {
+      box-sizing: inherit;
+    }
+    body {
+      background-color: #000000;
+	   
+      background-image: url("d.gif");
+	background-attachment: fixed;
+    background-position: 480px 50px;
+    background-repeat: no-repeat;
+<!--background-size: cover;-->
+   
+	  
+      font-family: "Titillium Web", Arial, sans-serif;
+      font-size: 20px;
+      margin: 0;
+    }
+    .container {
+      position: fixed;
+      top: 90%;
+      left: 50%;
+      -webkit-transform: translate(-50%, -50%);
+    }
+	 .container1 {
+      position: fixed;
+      top: 30%;
+      left: 70%;
+      -webkit-transform: translate(-50%, -50%);
+    }
+	
+    input {
+      background-color: #FFFFFF;
+      border: 1px solid #000000;
+      color: #000000;
+      font-family: "Oswald";
+      font-size: 30px;
+      line-height: 43px;
+      padding: 0 0.75em;
+      width: 700px;
+      -webkit-transition: all 0.35s ease-in;
+    }
+    textarea {
+      background-color: #000000;
+      border: 1px solid #47ff14;
+      color: #000000;
+      padding: 0.5em;
+      width: 100%;
+      -webkit-transition: all 0.35s ease-in;
+    }
+    input:active, input:focus, textarea:active, textarea:focus {
+      outline: 1px solid #000000;
+    }
+    .btn {
+      background-color: #000000;
+	  background-position:center;
+	  background-repeat:no-repeat;
+      border: 0px solid #000000;
+      color: #549EAF;
+      cursor: pointer;
+      
+	  width: 40px;
+	  height: 50px;
+	  top:20%;
+	  left:30%;
+	 
+    }
+    .btn:hover {
+      background-color: #1888A9;
+      color: #183035;
+    }
+	
+    .debug {
+      bottom: 0;
+      position: fixed;
+      right: 0;
+    }
+    .debug__content {
+      font-size: 14px;
+      max-height: 0;
+      overflow: hidden;
+      -webkit-transition: all 0.35s ease-in;
+    }
+    .debug__content.is-active {
+      display: block;
+      max-height: 500px;
+    }
+    .debug__btn {
+      width: 50%;
+    }
+    .spoken-response {
+      max-height: 0;
+      overflow: hidden;
+      -webkit-transition: all 0.35s ease-in;
+    }
+    .spoken-response.is-active {
+      max-height: 2000px;
+    }
+    .spoken-response__text {
+	top:20%;
+      background-color: #000000;
+      color: #E1E1E1;
+	   font-family: "Oswald";
+      padding: 1em;
+	  font-size: 20px;
+    }
+	  .a{
+		  padding-top: 200px;
+		  align-content: center;
+		  
+	  }
+	  
+.container3 {
+	width: 300px;
+	margin: 0 auto;
+	padding-top: 150px;
+}
+.button_aligner{
+		  float: left;
+	padding-right: 200px;
+	  } 
+	  .try{
+		  float: left;
+		  padding-right: 600px;
+		  
+	  }
+.buttonee{
+	//float: left;
+    height: 50px;
+    width: 60px;
+	background-color: #000000;
+	background-image: url("slack.png");
+	
+	//margin:auto;
+    //margin: 15px 0;
+     -webkit-transition: all 1s ease;
+    -moz-transition: all 1s ease;
+    -o-transition: all 1s ease;
+}
+
+.buttonee:hover {
+	height: 63px;
+	width: 65px;
+	margin-left: 5px;
+}	
+.buttonee1{
+	//float: left;
+    height: 50px;
+    width: 60px;
+	background-image: url("mess.png");
+	
+	//margin:auto;
+    //margin: 15px 0;
+     -webkit-transition: all 1s ease;
+    -moz-transition: all 1s ease;
+    -o-transition: all 1s ease;
+}
+
+.buttonee1:hover {
+	height: 63px;
+	width: 65px;
+	margin-left: 5px;
+}	
+.buttonee2{
+	//float: left;
+    height: 50px;
+    width: 60px;
+	background-image: url("tw.png")
+	
+	//margin:auto;
+    //margin: 15px 0;
+     -webkit-transition: all 1s ease;
+    -moz-transition: all 1s ease;
+    -o-transition: all 1s ease;
+}
+
+.buttonee2:hover {
+	height: 63px;
+	width: 65px;
+	margin-left: 5px;
+}	
+	
+
+  </style>
+  
+  <link rel="icon" href="1images.jpg" type="image/gif" >
+</head>
+<body>
+
+ <div class="container">
+    <input id="speech" type="text"> <br> <br>
+</div>
+ 
+    
+	<button id="rec" class="btn"></button>
+	 <div class="container1">
+   <div class="a">
+    <div id="spokenResponse" class="spoken-response">
+      <div class="spoken-response__text"></div>
+    </div>
+		 </div>
+  </div>
+  
+    <div class="debug__content">
+      <textarea id="response" cols="40" rows="20"></textarea>
+    </div>
+  </div>
+ <div class="try">
+    <div class="container3">
+		<div class="buttonee"><a href="https://l.messenger.com/l.php?u=https%3A%2F%2Fbaemax2.slack.com%2Fmessages%2F%40baemax%2F&h=ATMTZufdo8RLAOrwoyd7wtx2LwXsdIpAVM2s3QU-Dw2_L3Pe-0YTKT-31FpkwkW6dv_53hkKCp7Bv-HdHM4uFv3UQFldcxg5zefRC6gf4UqwXVt21-iR4hrcoUKVZ4vKaHZn6Eu-"><img src="slack.png" width="60" height="60"></a></div><br><br>
+   
+    <div class="buttonee1"><a href="https://www.messenger.com/t/434955823529159"><img src="mess.png" width="50" height="50"></a></div><br><br>
+    <div class="buttonee2"><a href="https://l.messenger.com/l.php?u=https%3A%2F%2Ftwitter.com%2Fgofornaman&h=ATMTZufdo8RLAOrwoyd7wtx2LwXsdIpAVM2s3QU-Dw2_L3Pe-0YTKT-31FpkwkW6dv_53hkKCp7Bv-HdHM4uFv3UQFldcxg5zefRC6gf4UqwXVt21-iR4hrcoUKVZ4vKaHZn6Eu-"><img src="twitter.png" width="50" height="50"></a></div>
+  </div>
+</div>
+  <link href="https://fonts.googleapis.com/css?family=Titillium+Web:200" rel="stylesheet" type="text/css">
+</body>
+</html>
